@@ -1,0 +1,41 @@
+name: user-service
+
+services:
+  user-db:
+    image: postgres:16-alpine
+    container_name: user-db
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: shop
+      POSTGRES_PASSWORD: shop
+      POSTGRES_DB: user_service
+    ports:
+      - "5433:5432"
+    volumes:
+      - user-db-data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U shop -d user_service"]
+      interval: 5s
+      timeout: 3s
+      retries: 5
+
+  user-service:
+    build: .
+    container_name: user-service
+    restart: unless-stopped
+    environment:
+      NODE_ENV: production
+      PORT: 3001
+      DATABASE_URL: postgres://shop:shop@user-db:5432/user_service
+      JWT_SECRET: ${JWT_SECRET}
+      JWT_EXPIRES_IN: 15m
+      BCRYPT_ROUNDS: 12
+      REFRESH_TTL_DAYS: 30
+    ports:
+      - "3001:3001"
+    depends_on:
+      user-db:
+        condition: service_healthy
+
+volumes:
+  user-db-data:
