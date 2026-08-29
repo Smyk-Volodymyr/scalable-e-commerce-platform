@@ -11,6 +11,7 @@ export interface PublicUser {
   email: string;
   fullName: string | null;
   createdAt: Date;
+  role: "customer" | "admin";
 }
 
 export interface AuthResult {
@@ -22,6 +23,7 @@ export interface AuthResult {
 export interface JwtPayload {
   sub: string;  
   email: string;
+  role: "customer" | "admin";
 }
 
 export function toPublicUser(row: repo.UserRow): PublicUser {
@@ -30,6 +32,7 @@ export function toPublicUser(row: repo.UserRow): PublicUser {
     email: row.email,
     fullName: row.full_name,
     createdAt: row.created_at,
+    role: row.role,
   };
 }
 
@@ -57,7 +60,7 @@ export async function register(input: RegisterInput): Promise<PublicUser> {
 }
 
 function signToken(user: repo.UserRow): string {
-  const payload: JwtPayload = { sub: user.id, email: user.email };
+  const payload: JwtPayload = { sub: user.id, email: user.email, role: user.role };
 
   return jwt.sign(payload, env.JWT_SECRET, {
     expiresIn: env.JWT_EXPIRES_IN as jwt.SignOptions["expiresIn"],

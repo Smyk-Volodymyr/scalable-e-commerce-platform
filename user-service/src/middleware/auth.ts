@@ -20,7 +20,11 @@ export const requireAuth: RequestHandler = (req, _res, next) => {
       throw unauthorized("Некоректний токен");
     }
 
-    req.user = { sub: payload.sub as string, email: payload.email as string };
+    req.user = {
+      sub: payload.sub as string,
+      email: payload.email as string,
+      role: payload.role === "admin" ? "admin" : "customer",
+    };
     next();
   } catch (err) {
     if (err instanceof jwt.TokenExpiredError) {

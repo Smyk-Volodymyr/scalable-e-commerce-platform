@@ -7,6 +7,7 @@ export interface UserRow {
   full_name: string | null;
   created_at: Date;
   updated_at: Date;
+  role: "customer" | "admin";
 }
 
 export interface RefreshTokenRow {
