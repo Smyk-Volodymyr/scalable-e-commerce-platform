@@ -12,6 +12,11 @@ app.get("/health", (_req, res) => {
   res.json({ status: "ok", service: "product-service" });
 });
 
+app.get("/health/db", async (_req, res) => {
+  const result = await pool.query("SELECT now() AS time");
+  res.json({ status: "ok", dbTime: result.rows[0].time });
+});
+
 app.use("/categories", categoriesRouter);
 app.use("/products", productsRouter);
 
@@ -21,9 +26,25 @@ app.use(errorHandler);
 async function start() {
   await pool.query("SELECT 1");
   console.log("Підключення до БД встановлено");
-  app.listen(env.PORT, () => {
+
+  const server = app.listen(env.PORT, () => {
     console.log(`product-service працює на http://localhost:${env.PORT} [${env.NODE_ENV}]`);
   });
+
+  for (const signal of ["SIGTERM", "SIGINT"] as const) {
+    process.on(signal, () => {
+      console.log(`${signal} — завершуюсь`);
+      server.close(async () => {
+        await pool.end();
+        console.log("Завершено коректно");
+        process.exit(0);
+      });
+      setTimeout(() => {
+        console.error("Не встиг завершитись за 10с, вихід примусово");
+        process.exit(1);
+      }, 10_000).unref();
+    });
+  }
 }
 
 start().catch((err) => {

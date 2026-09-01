@@ -71,12 +71,40 @@ services:
       USER_SERVICE_URL: http://user-service:3001
       PRODUCT_SERVICE_URL: http://product-service:3002
       CORS_ORIGIN: http://localhost:5173
+      CART_SERVICE_URL: http://cart-service:3003
     ports:
       - "3000:3000"
     depends_on:
       - user-service
       - product-service
+  
+  cart-redis:
+    image: redis:7-alpine
+    restart: unless-stopped
+    command: redis-server --appendonly yes
+    volumes:
+      - cart-redis-data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 5
 
+  cart-service:
+    build: ./cart-service
+    restart: unless-stopped
+    environment:
+      NODE_ENV: production
+      PORT: 3003
+      REDIS_URL: redis://cart-redis:6379
+      JWT_SECRET: ${JWT_SECRET}
+      PRODUCT_SERVICE_URL: http://product-service:3002
+      CART_TTL_DAYS: 30
+    depends_on:
+      cart-redis:
+        condition: service_healthy
+  
 volumes:
   user-db-data:
   product-db-data:
+  cart-redis-data:

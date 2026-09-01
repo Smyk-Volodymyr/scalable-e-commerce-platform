@@ -1,27 +1,79 @@
+import crypto from "node:crypto";
+import cors from "cors";
 import express from "express";
+import rateLimit from "express-rate-limit";
+import helmet from "helmet";
 import { createProxyMiddleware } from "http-proxy-middleware";
 import { env } from "./config/env.js";
 
 const app = express();
 
-// ЖОДНОГО express.json() тут немає, і це навмисно. Пояснення нижче.
+app.use(helmet());
+
+app.use(
+  cors({
+    origin: env.CORS_ORIGIN.split(",").map((s) => s.trim()),
+    credentials: true,
+  }),
+);  
+
+app.use((req, res, next) => {
+  const requestId = (req.headers["x-request-id"] as string) ?? crypto.randomUUID();
+  req.headers["x-request-id"] = requestId;
+  res.setHeader("x-request-id", requestId);
+  next();
+});
+
+app.use((req, res, next) => {
+  const start = Date.now();
+  res.on("finish", () => {
+    console.log(
+      JSON.stringify({
+        requestId: req.headers["x-request-id"],
+        method: req.method,
+        path: req.originalUrl,
+        status: res.statusCode,
+        durationMs: Date.now() - start,
+      }),
+    );
+  });
+  next();
+});
+
+app.use(
+  rateLimit({
+    windowMs: 60_000,
+    limit: 100,
+    standardHeaders: "draft-7",
+    legacyHeaders: false,
+    message: { error: "Забагато запитів, спробуйте пізніше" },
+  }),
+);
+
+app.use(
+  "/api/auth/login",
+  rateLimit({
+    windowMs: 15 * 60_000,
+    limit: 10,
+    skipSuccessfulRequests: true,
+    message: { error: "Забагато спроб входу, спробуйте за 15 хвилин" },
+  }),
+);
 
 app.get("/health", (_req, res) => {
   res.json({ status: "ok", service: "api-gateway" });
 });
 
-// Спільні налаштування для всіх проксі.
 const commonOptions = {
   changeOrigin: true,
-  // Прибираємо префікс /api: назовні /api/products, всередину — /products.
-  // Сервіси нічого не знають про існування gateway.
   pathRewrite: { "^/api": "" },
   on: {
     error: (err: Error, _req: unknown, res: unknown) => {
-      // Сервіс лежить або не відповідає. 502 Bad Gateway — саме той код:
-      // "я живий, але той, до кого я звертався, — ні".
       console.error("Помилка проксіювання:", err.message);
-      const response = res as { headersSent: boolean; status: (c: number) => { json: (b: unknown) => void } };
+      const response = res as {
+        headersSent: boolean;
+        status: (c: number) => { json: (b: unknown) => void };
+      };
       if (!response.headersSent) {
         response.status(502).json({ error: "Сервіс тимчасово недоступний" });
       }
@@ -29,9 +81,6 @@ const commonOptions = {
   },
 };
 
-// pathFilter, а не app.use("/api/auth", ...) — щоб проксі бачив ПОВНИЙ шлях.
-// При монтуванні на префікс Express обрізає його з req.url, і pathRewrite
-// не мав би що переписувати.
 app.use(
   createProxyMiddleware({
     ...commonOptions,
@@ -48,10 +97,32 @@ app.use(
   }),
 );
 
+app.use(
+  createProxyMiddleware({
+    ...commonOptions,
+    pathFilter: ["/api/cart/**"],
+    target: env.CART_SERVICE_URL,
+  }),
+);
+
 app.use((req, res) => {
   res.status(404).json({ error: `Роут ${req.method} ${req.path} не існує` });
 });
 
-app.listen(env.PORT, () => {
+const server = app.listen(env.PORT, () => {
   console.log(`api-gateway працює на http://localhost:${env.PORT} [${env.NODE_ENV}]`);
 });
+
+for (const signal of ["SIGTERM", "SIGINT"] as const) {
+  process.on(signal, () => {
+    console.log(`${signal} — завершуюсь`);
+    server.close(() => {
+      console.log("Завершено коректно");
+      process.exit(0);
+    });
+    setTimeout(() => {
+      console.error("Не встиг завершитись за 10с, вихід примусово");
+      process.exit(1);
+    }, 10_000).unref();
+  });
+}
