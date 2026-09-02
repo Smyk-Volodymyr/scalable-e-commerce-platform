@@ -27,3 +27,8 @@ export const cancel: RequestHandler = async (req, res) => {
   await service.cancel(parseId(req.params.id));
   res.status(204).end();
 };
+
+export const release: RequestHandler = async (req, res) => {
+  await service.release(parseId(req.params.id));
+  res.status(204).end();
+};

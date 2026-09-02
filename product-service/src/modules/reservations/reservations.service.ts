@@ -68,3 +68,26 @@ export async function cancel(reservationId: string): Promise<void> {
     }
   });
 }
+
+export async function release(reservationId: string): Promise<void> {
+  const reservation = await repo.findById(reservationId);
+  if (!reservation) throw notFound("Резерв не знайдено");
+
+  if (reservation.status !== "committed") {
+    throw badRequest(`Не можна повернути резерв у статусі "${reservation.status}"`);
+  }
+
+  const items = await repo.getItems(reservationId);
+
+  await withTransaction(async (client) => {
+    const { rowCount } = await client.query(
+      "UPDATE reservations SET status = 'cancelled', updated_at = now() WHERE id = $1 AND status = 'committed'",
+      [reservationId],
+    );
+    if (rowCount !== 1) return;
+
+    for (const item of items) {
+      await repo.restoreStock(client, item.product_id, item.quantity);
+    }
+  });
+}

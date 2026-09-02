@@ -106,3 +106,23 @@ export async function list(userId: string, page: number, limit: number): Promise
   const rows = await repo.findByUser(userId, limit, (page - 1) * limit);
   return Promise.all(rows.map(toPublic));
 }
+
+export async function cancel(userId: string, orderId: string): Promise<PublicOrder> {
+  const row = await repo.findById(orderId);
+  if (!row) throw notFound("Замовлення не знайдено");
+  if (row.user_id !== userId) throw notFound("Замовлення не знайдено");
+
+  if (row.status === "cancelled") return toPublic(row); // ідемпотентно
+  if (row.status !== "pending") {
+    throw conflict(`Не можна скасувати замовлення у статусі "${row.status}"`);
+  }
+
+  await repo.setStatus(orderId, "cancelled");
+
+  if (row.reservation_id) {
+    await productClient.releaseCommitted(row.reservation_id);
+  }
+
+  const updated = await repo.findById(orderId);
+  return toPublic(updated!);
+}

@@ -6,3 +6,4 @@ export const reservationsRouter = Router();
 reservationsRouter.post("/", controller.create);
 reservationsRouter.post("/:id/commit", controller.commit);
 reservationsRouter.delete("/:id", controller.cancel);
+reservationsRouter.post("/:id/release", controller.release);

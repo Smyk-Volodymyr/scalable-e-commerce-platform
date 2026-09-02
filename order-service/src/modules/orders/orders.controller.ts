@@ -30,3 +30,9 @@ export const list: RequestHandler = async (req, res) => {
   if (!parsed.success) throw badRequest("Некоректні параметри");
   res.json(await service.list(req.user!.sub, parsed.data.page, parsed.data.limit));
 };
+
+export const cancel: RequestHandler = async (req, res) => {
+  const parsed = uuidSchema.safeParse(req.params.id);
+  if (!parsed.success) throw badRequest("Некоректний ідентифікатор");
+  res.json(await service.cancel(req.user!.sub, parsed.data));
+};

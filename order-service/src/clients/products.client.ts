@@ -51,3 +51,15 @@ export async function cancelReservation(reservationId: string): Promise<void> {
     console.error("Не вдалося скасувати резерв, спрацює TTL:", err);
   }
 }
+
+export async function releaseCommitted(reservationId: string): Promise<void> {
+  try {
+    const res = await fetch(
+      `${env.PRODUCT_SERVICE_URL}/internal/reservations/${reservationId}/release`,
+      { method: "POST", signal: AbortSignal.timeout(5000) },
+    );
+    if (!res.ok) console.error("Не вдалося повернути залишок, статус:", res.status);
+  } catch (err) {
+    console.error("Не вдалося повернути залишок:", err);
+  }
+}
