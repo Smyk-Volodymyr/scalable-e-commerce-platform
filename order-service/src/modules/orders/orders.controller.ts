@@ -36,3 +36,11 @@ export const cancel: RequestHandler = async (req, res) => {
   if (!parsed.success) throw badRequest("Некоректний ідентифікатор");
   res.json(await service.cancel(req.user!.sub, parsed.data));
 };
+
+export const markPaid: RequestHandler = async (req, res) => {
+  const parsed = uuidSchema.safeParse(req.params.id);
+  if (!parsed.success) throw badRequest("Некоректний ідентифікатор");
+  await service.markPaid(parsed.data);
+  res.status(204).end();
+};
+

@@ -126,3 +126,13 @@ export async function cancel(userId: string, orderId: string): Promise<PublicOrd
   const updated = await repo.findById(orderId);
   return toPublic(updated!);
 }
+
+export async function markPaid(orderId: string): Promise<void> {
+  const row = await repo.findById(orderId);
+  if (!row) throw notFound("Замовлення не знайдено");
+  if (row.status === "paid") return;           
+  if (row.status !== "pending") {
+    throw conflict(`Не можна оплатити замовлення у статусі "${row.status}"`);
+  }
+  await repo.setStatus(orderId, "paid");
+}

@@ -1,6 +1,7 @@
 name: ecommerce
 
 services:
+  # ---------- Сховища ----------
   user-db:
     image: postgres:16-alpine
     restart: unless-stopped
@@ -52,6 +53,23 @@ services:
       timeout: 3s
       retries: 5
 
+  payment-db:
+    image: postgres:16-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: shop
+      POSTGRES_PASSWORD: shop
+      POSTGRES_DB: payment_service
+    ports:
+      - "5436:5432"
+    volumes:
+      - payment-db-data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U shop -d payment_service"]
+      interval: 5s
+      timeout: 3s
+      retries: 5
+
   cart-redis:
     image: redis:7-alpine
     restart: unless-stopped
@@ -64,6 +82,7 @@ services:
       timeout: 3s
       retries: 5
 
+  # ---------- Сервіси ----------
   user-service:
     build: ./user-service
     restart: unless-stopped
@@ -120,6 +139,22 @@ services:
       order-db:
         condition: service_healthy
 
+  payment-service:
+    build: ./payment-service
+    restart: unless-stopped
+    environment:
+      NODE_ENV: production
+      PORT: 3005
+      DATABASE_URL: postgres://shop:shop@payment-db:5432/payment_service
+      JWT_SECRET: ${JWT_SECRET}
+      ORDER_SERVICE_URL: http://order-service:3004
+      STRIPE_SECRET_KEY: ${STRIPE_SECRET_KEY}
+      STRIPE_WEBHOOK_SECRET: ${STRIPE_WEBHOOK_SECRET}
+    depends_on:
+      payment-db:
+        condition: service_healthy
+
+  # ---------- Єдиний вхід ----------
   api-gateway:
     build: ./api-gateway
     restart: unless-stopped
@@ -130,6 +165,7 @@ services:
       PRODUCT_SERVICE_URL: http://product-service:3002
       CART_SERVICE_URL: http://cart-service:3003
       ORDER_SERVICE_URL: http://order-service:3004
+      PAYMENT_SERVICE_URL: http://payment-service:3005
       CORS_ORIGIN: http://localhost:5173
     ports:
       - "3000:3000"
@@ -138,9 +174,11 @@ services:
       - product-service
       - cart-service
       - order-service
+      - payment-service
 
 volumes:
   user-db-data:
   product-db-data:
   order-db-data:
+  payment-db-data:
   cart-redis-data:

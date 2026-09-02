@@ -113,6 +113,14 @@ app.use(
   }),
 );
 
+app.use(
+  createProxyMiddleware({
+    ...commonOptions,
+    pathFilter: ["/api/payments/**"],
+    target: env.PAYMENT_SERVICE_URL,
+  }),
+);
+
 app.use((req, res) => {
   res.status(404).json({ error: `Роут ${req.method} ${req.path} не існує` });
 });

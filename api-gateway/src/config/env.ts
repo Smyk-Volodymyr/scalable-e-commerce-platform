@@ -6,9 +6,10 @@ const envSchema = z.object({
   PORT: z.coerce.number().int().positive().default(3000),
   USER_SERVICE_URL: z.string().url(),
   PRODUCT_SERVICE_URL: z.string().url(),
-  CORS_ORIGIN: z.string().default("http://localhost:5173"),
   CART_SERVICE_URL: z.string().url(),
   ORDER_SERVICE_URL: z.string().url(),
+  PAYMENT_SERVICE_URL: z.string().url(),
+  CORS_ORIGIN: z.string().default("http://localhost:5173"),
 });
 
 const parsed = envSchema.safeParse(process.env);
