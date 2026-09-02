@@ -35,6 +35,35 @@ services:
       timeout: 3s
       retries: 5
 
+  order-db:
+    image: postgres:16-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: shop
+      POSTGRES_PASSWORD: shop
+      POSTGRES_DB: order_service
+    ports:
+      - "5435:5432"
+    volumes:
+      - order-db-data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U shop -d order_service"]
+      interval: 5s
+      timeout: 3s
+      retries: 5
+
+  cart-redis:
+    image: redis:7-alpine
+    restart: unless-stopped
+    command: redis-server --appendonly yes
+    volumes:
+      - cart-redis-data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 5
+
   user-service:
     build: ./user-service
     restart: unless-stopped
@@ -58,37 +87,10 @@ services:
       PORT: 3002
       DATABASE_URL: postgres://shop:shop@product-db:5432/product_service
       JWT_SECRET: ${JWT_SECRET}
+      RESERVATION_TTL_MINUTES: 15
     depends_on:
       product-db:
         condition: service_healthy
-
-  api-gateway:
-    build: ./api-gateway
-    restart: unless-stopped
-    environment:
-      NODE_ENV: production
-      PORT: 3000
-      USER_SERVICE_URL: http://user-service:3001
-      PRODUCT_SERVICE_URL: http://product-service:3002
-      CORS_ORIGIN: http://localhost:5173
-      CART_SERVICE_URL: http://cart-service:3003
-    ports:
-      - "3000:3000"
-    depends_on:
-      - user-service
-      - product-service
-  
-  cart-redis:
-    image: redis:7-alpine
-    restart: unless-stopped
-    command: redis-server --appendonly yes
-    volumes:
-      - cart-redis-data:/data
-    healthcheck:
-      test: ["CMD", "redis-cli", "ping"]
-      interval: 5s
-      timeout: 3s
-      retries: 5
 
   cart-service:
     build: ./cart-service
@@ -103,8 +105,42 @@ services:
     depends_on:
       cart-redis:
         condition: service_healthy
-  
+
+  order-service:
+    build: ./order-service
+    restart: unless-stopped
+    environment:
+      NODE_ENV: production
+      PORT: 3004
+      DATABASE_URL: postgres://shop:shop@order-db:5432/order_service
+      JWT_SECRET: ${JWT_SECRET}
+      PRODUCT_SERVICE_URL: http://product-service:3002
+      CART_SERVICE_URL: http://cart-service:3003
+    depends_on:
+      order-db:
+        condition: service_healthy
+
+  api-gateway:
+    build: ./api-gateway
+    restart: unless-stopped
+    environment:
+      NODE_ENV: production
+      PORT: 3000
+      USER_SERVICE_URL: http://user-service:3001
+      PRODUCT_SERVICE_URL: http://product-service:3002
+      CART_SERVICE_URL: http://cart-service:3003
+      ORDER_SERVICE_URL: http://order-service:3004
+      CORS_ORIGIN: http://localhost:5173
+    ports:
+      - "3000:3000"
+    depends_on:
+      - user-service
+      - product-service
+      - cart-service
+      - order-service
+
 volumes:
   user-db-data:
   product-db-data:
+  order-db-data:
   cart-redis-data:

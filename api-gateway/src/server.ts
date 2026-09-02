@@ -105,6 +105,14 @@ app.use(
   }),
 );
 
+app.use(
+  createProxyMiddleware({
+    ...commonOptions,
+    pathFilter: ["/api/orders/**"],
+    target: env.ORDER_SERVICE_URL,
+  }),
+);
+
 app.use((req, res) => {
   res.status(404).json({ error: `Роут ${req.method} ${req.path} не існує` });
 });

@@ -21,6 +21,6 @@ COPY migrations ./migrations
 
 USER node
 
-EXPOSE 3003
+EXPOSE 3004
 
 CMD ["sh", "-c", "node dist/db/migrate.js && node dist/server.js"]
