@@ -6,21 +6,100 @@ on:
   pull_request:
     branches: [main]
 
+# Заглушки замість справжніх секретів: CI не бачить бойових значень і не має їх бачити.
+# Порожніми їх зробити не можна — схеми оточення валідують формат (JWT_SECRET від
+# 32 символів, префікси sk_ і whsec_), тож заглушки мусять бути правдоподібними.
+env:
+  JWT_SECRET: ci-placeholder-secret-at-least-32-characters
+  STRIPE_SECRET_KEY: sk_test_placeholder
+  STRIPE_WEBHOOK_SECRET: whsec_placeholder
+  PRODUCT_SERVICE_URL: http://localhost:3002
+  CART_SERVICE_URL: http://localhost:3003
+  ORDER_SERVICE_URL: http://localhost:3004
+
 jobs:
-  typecheck:
+  # Найдешевша перевірка, тому йде першою і решта чекає саме на неї:
+  # один npm ci на весь монорепозиторій замість семи, один прогін tsc по всіх
+  # воркспейсах замість матриці з семи запусків.
+  lint:
+    name: Типи (усі воркспейси одним прогоном)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          # Lock-файл тепер один, кореневий: посервісні прибрано разом із переходом
+          # на workspaces.
+          cache-dependency-path: package-lock.json
+
+      # postinstall кореня збирає packages/shared. Без цього кроку сервіси не мають
+      # ані типів пакета, ані його dist — і падає все далі за списком.
+      - name: Встановлення залежностей і збірка @shop/shared
+        run: npm ci
+
+      - name: npx tsc --noEmit по всіх воркспейсах
+        run: npm run typecheck
+
+  # Сервіси на Postgres. RabbitMQ піднімаємо тут же: product, order і notification
+  # вимагають RABBITMQ_URL у схемі оточення, і брокер має бути справжнім, а не
+  # вигаданим рядком. Жоден тест наразі не відкриває з'єднання — тести подій
+  # викликають обробник напряму, — але саме сюди їх природно дописувати.
+  test:
+    name: Тести (${{ matrix.service }})
+    needs: lint
     runs-on: ubuntu-latest
 
     strategy:
-      matrix:
-        service:
-          - user-service
-          - product-service
-          - cart-service
-          - order-service
-          - payment-service
-          - notification-service
-          - api-gateway
       fail-fast: false
+      matrix:
+        include:
+          - service: user-service
+            db: user_service_test
+          - service: product-service
+            db: product_service_test
+          - service: order-service
+            db: order_service_test
+          - service: payment-service
+            db: payment_service_test
+          - service: notification-service
+            db: notification_service_test
+
+    services:
+      postgres:
+        image: postgres:16-alpine
+        env:
+          POSTGRES_USER: shop
+          POSTGRES_PASSWORD: shop
+          # Службова база потрібна явно: tests/global-setup.ts підключається саме
+          # до неї, щоб виконати CREATE DATABASE для тестової.
+          POSTGRES_DB: postgres
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U shop -d postgres"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+
+      rabbitmq:
+        image: rabbitmq:3.13-management-alpine
+        env:
+          RABBITMQ_DEFAULT_USER: shop
+          RABBITMQ_DEFAULT_PASS: shop
+        ports:
+          - 5672:5672
+        options: >-
+          --health-cmd "rabbitmq-diagnostics -q ping"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 10
+
+    env:
+      DATABASE_URL: postgres://shop:shop@localhost:5432/${{ matrix.db }}
+      RABBITMQ_URL: amqp://shop:shop@localhost:5672
 
     steps:
       - uses: actions/checkout@v4
@@ -29,21 +108,67 @@ jobs:
         with:
           node-version: 22
           cache: npm
-          cache-dependency-path: ${{ matrix.service }}/package-lock.json
+          cache-dependency-path: package-lock.json
 
-      - name: Install dependencies
-        working-directory: ${{ matrix.service }}
+      - name: Встановлення залежностей і збірка @shop/shared
         run: npm ci
 
-      - name: Type check
-        working-directory: ${{ matrix.service }}
+      - name: Перевірка типів
         run: npx tsc --noEmit
+        working-directory: ${{ matrix.service }}
+
+      - name: Інтеграційні тести
+        run: npm test --workspace ${{ matrix.service }}
+
+  # cart-service тримає кошики в Redis і Postgres не торкається взагалі, тому
+  # окремий джоб: піднімати заради нього Postgres і RabbitMQ немає сенсу.
+  test-cart:
+    name: Тести (cart-service)
+    needs: lint
+    runs-on: ubuntu-latest
+
+    services:
+      redis:
+        image: redis:7-alpine
+        ports:
+          - 6379:6379
+        options: >-
+          --health-cmd "redis-cli ping"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+
+    env:
+      # База 1, а не 0: та сама ізоляція, що й локально, де в базі 0 живуть
+      # кошики застосунку.
+      REDIS_URL: redis://localhost:6379/1
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: package-lock.json
+
+      - name: Встановлення залежностей і збірка @shop/shared
+        run: npm ci
+
+      - name: Перевірка типів
+        run: npx tsc --noEmit
+        working-directory: cart-service
+
+      - name: Інтеграційні тести
+        run: npm test --workspace cart-service
 
   build:
+    name: Образ (${{ matrix.service }})
+    needs: lint
     runs-on: ubuntu-latest
-    needs: typecheck
 
     strategy:
+      fail-fast: false
       matrix:
         service:
           - user-service
@@ -53,29 +178,27 @@ jobs:
           - payment-service
           - notification-service
           - api-gateway
-      fail-fast: false
 
     steps:
       - uses: actions/checkout@v4
 
       - uses: docker/setup-buildx-action@v3
 
-      - name: Build image
+      - name: Складання образу
         uses: docker/build-push-action@v6
         with:
-          context: ./${{ matrix.service }}
+          # Контекст — корінь: в образ має потрапити і сервіс, і packages/shared.
+          context: .
+          file: ./${{ matrix.service }}/Dockerfile
           push: false
           cache-from: type=gha,scope=${{ matrix.service }}
           cache-to: type=gha,mode=max,scope=${{ matrix.service }}
 
   compose-validate:
+    name: Валідація docker-compose
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
 
-      - name: Validate docker-compose
-        env:
-          JWT_SECRET: ci-placeholder-secret-at-least-32-characters
-          STRIPE_SECRET_KEY: sk_test_placeholder
-          STRIPE_WEBHOOK_SECRET: whsec_placeholder
+      - name: docker compose config
         run: docker compose config --quiet
