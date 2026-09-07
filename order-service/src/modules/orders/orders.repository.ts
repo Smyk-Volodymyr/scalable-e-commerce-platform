@@ -91,3 +91,45 @@ export async function setStatus(id: string, status: string): Promise<boolean> {
   );
   return rows.length > 0;
 }
+
+export async function insertOutboxEvent(
+  client: pg.PoolClient,
+  eventType: string,
+  aggregateId: string,
+  payload: unknown,
+): Promise<void> {
+  await client.query(
+    "INSERT INTO outbox (event_type, aggregate_id, payload) VALUES ($1, $2, $3)",
+    [eventType, aggregateId, JSON.stringify(payload)],
+  );
+}
+
+export interface OutboxRow {
+  id: string;
+  event_type: string;
+  aggregate_id: string;
+  payload: unknown;
+  attempts: number;
+}
+
+export async function lockPendingEvents(client: pg.PoolClient, limit: number): Promise<OutboxRow[]> {
+  const { rows } = await client.query<OutboxRow>(
+    `SELECT id, event_type, aggregate_id, payload, attempts
+     FROM outbox WHERE published_at IS NULL
+     ORDER BY created_at LIMIT $1
+     FOR UPDATE SKIP LOCKED`,
+    [limit],
+  );
+  return rows;
+}
+
+export async function markPublished(client: pg.PoolClient, id: string): Promise<void> {
+  await client.query("UPDATE outbox SET published_at = now() WHERE id = $1", [id]);
+}
+
+export async function markFailed(client: pg.PoolClient, id: string, error: string): Promise<void> {
+  await client.query(
+    "UPDATE outbox SET attempts = attempts + 1, last_error = $2 WHERE id = $1",
+    [id, error],
+  );
+}

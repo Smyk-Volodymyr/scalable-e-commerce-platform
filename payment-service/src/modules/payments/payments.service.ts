@@ -18,7 +18,6 @@ export async function createIntent(
   orderId: string,
   authHeader: string,
 ): Promise<PaymentIntentResponse> {
-  // Ідемпотентність: платіж на це замовлення вже є — віддаємо його.
   const existing = await repo.findByOrderId(orderId);
   if (existing) {
     if (existing.status === "succeeded") throw conflict("Замовлення вже оплачене");
@@ -34,7 +33,6 @@ export async function createIntent(
     }
   }
 
-  // Суму беремо із замовлення, НЕ від клієнта. Це головне правило оплати.
   const order = await ordersClient.getOrder(orderId, authHeader);
   if (order.status !== "pending") {
     throw badRequest(`Не можна оплатити замовлення у статусі "${order.status}"`);
@@ -42,22 +40,15 @@ export async function createIntent(
 
   const intent = await stripe.paymentIntents.create(
     {
-      amount: order.totalCents,        // Stripe теж рахує в мінорних одиницях
+      amount: order.totalCents,    
       currency: order.currency.toLowerCase(),
-      // metadata повернеться до нас у вебхуку — так ми звʼяжемо
-      // подію Stripe із нашим замовленням.
       metadata: { orderId, userId },
        automatic_payment_methods: {
         enabled: true,
-        // Вимикаємо способи оплати з редіректом: без фронтенду
-        // нікуди повертати користувача. Лишаються картки й подібне,
-        // що обробляються без залишення сторінки.
         allow_redirects: "never",
       },
     },
     {
-      // Ідемпотентність на боці Stripe: повтор із тим самим ключем
-      // не створить другий intent, а поверне вже наявний.
       idempotencyKey: `order_${orderId}`,
     },
   );
@@ -79,9 +70,7 @@ export async function createIntent(
   };
 }
 
-// Викликається з вебхука після перевірки підпису.
 export async function handleEvent(event: Stripe.Event): Promise<void> {
-  // Дедуплікація: Stripe доставляє "щонайменше один раз".
   const isNew = await withTransaction((client) =>
     repo.markEventProcessed(client, event.id, event.type),
   );
@@ -110,8 +99,6 @@ export async function handleEvent(event: Stripe.Event): Promise<void> {
     }
 
     default:
-      // Решта подій нас не цікавить, але 200 віддати треба —
-      // інакше Stripe повторюватиме їх годинами.
       console.log(`Подія ${event.type} не потребує обробки`);
   }
 }

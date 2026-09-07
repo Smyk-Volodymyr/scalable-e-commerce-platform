@@ -135,10 +135,12 @@ services:
       JWT_SECRET: ${JWT_SECRET}
       PRODUCT_SERVICE_URL: http://product-service:3002
       CART_SERVICE_URL: http://cart-service:3003
+      RABBITMQ_URL: amqp://shop:shop@rabbitmq:5672
     depends_on:
       order-db:
         condition: service_healthy
-
+      rabbitmq:
+        condition: service_healthy
   payment-service:
     build: ./payment-service
     restart: unless-stopped
@@ -154,7 +156,23 @@ services:
       payment-db:
         condition: service_healthy
 
-  # ---------- Єдиний вхід ----------
+  rabbitmq:
+    image: rabbitmq:3.13-management-alpine
+    restart: unless-stopped
+    environment:
+      RABBITMQ_DEFAULT_USER: shop
+      RABBITMQ_DEFAULT_PASS: shop
+    ports:
+      - "5672:5672"
+      - "15672:15672"
+    volumes:
+      - rabbitmq-data:/var/lib/rabbitmq
+    healthcheck:
+      test: ["CMD", "rabbitmq-diagnostics", "-q", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+
   api-gateway:
     build: ./api-gateway
     restart: unless-stopped
@@ -182,3 +200,4 @@ volumes:
   order-db-data:
   payment-db-data:
   cart-redis-data:
+  rabbitmq-data:

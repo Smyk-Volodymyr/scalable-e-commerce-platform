@@ -81,11 +81,23 @@ export async function checkout(
 
       await repo.insertIdempotencyKey(client, idempotencyKey, userId, orderId);
 
+      await repo.insertOutboxEvent(client, "order.created", orderId, {
+        orderId,
+        userId,
+        totalCents: cart.totalCents,
+        currency: cart.currency,
+        items: cart.items.map((i) => ({
+          productId: i.productId,
+          name: i.name,
+          quantity: i.quantity,
+          priceCents: i.priceCents,
+        })),
+      });
+
       return row;
     });
 
     await productClient.commitReservation(reservation.id);
-
     await cartClient.clearCart(authHeader);
 
     return toPublic(order);
@@ -111,15 +123,29 @@ export async function cancel(userId: string, orderId: string): Promise<PublicOrd
   const row = await repo.findById(orderId);
   if (!row) throw notFound("Замовлення не знайдено");
   if (row.user_id !== userId) throw notFound("Замовлення не знайдено");
-
-  if (row.status === "cancelled") return toPublic(row); // ідемпотентно
+  if (row.status === "cancelled") return toPublic(row);
   if (row.status !== "pending") {
     throw conflict(`Не можна скасувати замовлення у статусі "${row.status}"`);
   }
 
-  await repo.setStatus(orderId, "cancelled");
+  const changed = await withTransaction(async (client) => {
+    const { rowCount } = await client.query(
+      "UPDATE orders SET status='cancelled', updated_at=now() WHERE id=$1 AND status='pending'",
+      [orderId],
+    );
+    if (rowCount !== 1) return false;
 
-  if (row.reservation_id) {
+    await repo.insertOutboxEvent(client, "order.cancelled", orderId, {
+      orderId,
+      userId: row.user_id,
+      reservationId: row.reservation_id,
+      totalCents: row.total_cents,
+    });
+
+    return true;
+  });
+
+  if (changed && row.reservation_id) {
     await productClient.releaseCommitted(row.reservation_id);
   }
 
@@ -130,9 +156,23 @@ export async function cancel(userId: string, orderId: string): Promise<PublicOrd
 export async function markPaid(orderId: string): Promise<void> {
   const row = await repo.findById(orderId);
   if (!row) throw notFound("Замовлення не знайдено");
-  if (row.status === "paid") return;           
+  if (row.status === "paid") return;
   if (row.status !== "pending") {
     throw conflict(`Не можна оплатити замовлення у статусі "${row.status}"`);
   }
-  await repo.setStatus(orderId, "paid");
+
+  await withTransaction(async (client) => {
+    const { rowCount } = await client.query(
+      "UPDATE orders SET status='paid', updated_at=now() WHERE id=$1 AND status='pending'",
+      [orderId],
+    );
+    if (rowCount !== 1) return;
+
+    await repo.insertOutboxEvent(client, "order.paid", orderId, {
+      orderId,
+      userId: row.user_id,
+      totalCents: row.total_cents,
+      currency: row.currency,
+    });
+  });
 }

@@ -42,8 +42,6 @@ export async function setStatus(
   status: string,
   lastError?: string,
 ): Promise<boolean> {
-  // AND status = 'pending' — захист від зміни вже фінального статусу.
-  // Події від Stripe можуть прийти не по порядку.
   const rows = await query<{ id: string }>(
     `UPDATE payments SET status = $2, last_error = $3, updated_at = now()
      WHERE provider_intent_id = $1 AND status = 'pending' RETURNING id`,
@@ -52,8 +50,6 @@ export async function setStatus(
   return rows.length > 0;
 }
 
-// Повертає false, якщо подію вже обробляли. ON CONFLICT DO NOTHING
-// робить перевірку атомарною — два паралельні вебхуки не пройдуть обидва.
 export async function markEventProcessed(
   client: pg.PoolClient,
   eventId: string,

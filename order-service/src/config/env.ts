@@ -8,6 +8,7 @@ const envSchema = z.object({
   JWT_SECRET: z.string().min(32, "JWT_SECRET має бути щонайменше 32 символи"),
   PRODUCT_SERVICE_URL: z.string().url(),
   CART_SERVICE_URL: z.string().url(),
+  RABBITMQ_URL: z.string().min(1),
 });
 
 const parsed = envSchema.safeParse(process.env);

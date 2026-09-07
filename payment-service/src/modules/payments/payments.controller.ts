@@ -30,11 +30,8 @@ export const webhook: RequestHandler = async (req, res) => {
 
   let event;
   try {
-    // req.body тут — Buffer (завдяки express.raw), а не обʼєкт.
-    // constructEvent перераховує HMAC від сирих байтів і звіряє з підписом.
     event = stripe.webhooks.constructEvent(req.body, signature, env.STRIPE_WEBHOOK_SECRET);
   } catch (err) {
-    // Підпис не зійшовся — запит НЕ від Stripe. 400 і жодної обробки.
     console.error("Некоректний підпис вебхука:", err);
     res.status(400).json({ error: "Некоректний підпис" });
     return;
@@ -44,7 +41,6 @@ export const webhook: RequestHandler = async (req, res) => {
     await service.handleEvent(event);
     res.json({ received: true });
   } catch (err) {
-    // 500 змусить Stripe повторити подію пізніше.
     console.error("Помилка обробки події:", err);
     res.status(500).json({ error: "Помилка обробки" });
   }
