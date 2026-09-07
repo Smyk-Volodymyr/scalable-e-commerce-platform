@@ -1,20 +1,6 @@
-import express from "express";
+import { app } from "./app.js";
 import { env } from "./config/env.js";
-import { connectRedis, redis } from "./db/redis.js";
-import { errorHandler, notFoundHandler } from "./middleware/error.js";
-import { cartRouter } from "./modules/cart/cart.routes.js";
-
-const app = express();
-app.use(express.json());
-
-app.get("/health", (_req, res) => {
-  res.json({ status: "ok", service: "cart-service" });
-});
-
-app.use("/cart", cartRouter);
-
-app.use(notFoundHandler);
-app.use(errorHandler);
+import { connectRedis } from "./db/redis.js";
 
 async function start() {
   await connectRedis();

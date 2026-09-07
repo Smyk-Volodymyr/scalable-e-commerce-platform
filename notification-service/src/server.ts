@@ -1,15 +1,8 @@
-import express from "express";
+import { app } from "./app.js";
 import { env } from "./config/env.js";
 import { pool } from "./db/pool.js";
 import { closeRabbit, connectRabbit } from "./lib/rabbit.js";
 import { startOrderConsumer } from "./consumers/order.consumer.js";
-
-const app = express();
-app.use(express.json());
-
-app.get("/health", (_req, res) => {
-  res.json({ status: "ok", service: "notification-service" });
-});
 
 async function start() {
   await pool.query("SELECT 1");

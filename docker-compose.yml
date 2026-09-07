@@ -74,6 +74,10 @@ services:
     image: redis:7-alpine
     restart: unless-stopped
     command: redis-server --appendonly yes
+    # Порт назовні потрібен інтеграційним тестам cart-service:
+    # вони працюють з реальним Redis, а не з мок-клієнтом.
+    ports:
+      - "6380:6379"
     volumes:
       - cart-redis-data:/data
     healthcheck:

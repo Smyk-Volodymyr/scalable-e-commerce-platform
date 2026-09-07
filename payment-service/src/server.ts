@@ -1,29 +1,6 @@
-import express from "express";
+import { app } from "./app.js";
 import { env } from "./config/env.js";
 import { pool } from "./db/pool.js";
-import { errorHandler, notFoundHandler } from "./middleware/error.js";
-import { webhook } from "./modules/payments/payments.controller.js";
-import { paymentsRouter } from "./modules/payments/payments.routes.js";
-
-const app = express();
-
-app.post("/payments/webhook", express.raw({ type: "application/json" }), webhook);
-
-app.use(express.json());
-
-app.get("/health", (_req, res) => {
-  res.json({ status: "ok", service: "payment-service" });
-});
-
-app.use("/payments", paymentsRouter);
-
-app.get("/health/db", async (_req, res) => {
-  const result = await pool.query("SELECT now() AS time");
-  res.json({ status: "ok", dbTime: result.rows[0].time });
-});
-
-app.use(notFoundHandler);
-app.use(errorHandler);
 
 async function start() {
   await pool.query("SELECT 1");

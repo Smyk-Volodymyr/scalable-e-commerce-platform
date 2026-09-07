@@ -36,7 +36,9 @@ function buildMessage(eventType: string, data: OrderEvent) {
   }
 }
 
-async function handle(msg: ConsumeMessage): Promise<void> {
+// Експортуємо обробник, щоб його можна було викликати напряму (тести, ручний реплей події)
+// без піднятого RabbitMQ. Тіло функції не змінювалось.
+export async function handleOrderEvent(msg: ConsumeMessage): Promise<void> {
   const eventType = msg.fields.routingKey;
   const messageId = msg.properties.messageId as string | undefined;
   const data = JSON.parse(msg.content.toString()) as OrderEvent;
@@ -65,6 +67,6 @@ async function handle(msg: ConsumeMessage): Promise<void> {
 }
 
 export async function startOrderConsumer(): Promise<void> {
-  await consume("notifications.orders", ["order.*"], handle);
+  await consume("notifications.orders", ["order.*"], handleOrderEvent);
   console.log("Споживач подій замовлень запущено");
 }

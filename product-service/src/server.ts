@@ -1,33 +1,9 @@
-import express from "express";
+import { app } from "./app.js";
 import { env } from "./config/env.js";
 import { pool } from "./db/pool.js";
 import { closeRabbit, connectRabbit } from "./lib/rabbit.js";
 import { startOrderConsumer } from "./consumers/order.consumer.js";
 import { startExpiryJob } from "./jobs/expire-reservations.js";
-import { errorHandler, notFoundHandler } from "./middleware/error.js";
-import { categoriesRouter } from "./modules/products/categories.routes.js";
-import { productsRouter } from "./modules/products/products.routes.js";
-import { reservationsRouter } from "./modules/reservations/reservations.routes.js";
-
-const app = express();
-app.use(express.json());
-
-app.get("/health", (_req, res) => {
-  res.json({ status: "ok", service: "product-service" });
-});
-
-app.get("/health/db", async (_req, res) => {
-  const result = await pool.query("SELECT now() AS time");
-  res.json({ status: "ok", dbTime: result.rows[0].time });
-});
-
-app.use("/categories", categoriesRouter);
-app.use("/products", productsRouter);
-
-app.use("/internal/reservations", reservationsRouter);
-
-app.use(notFoundHandler);
-app.use(errorHandler);
 
 async function start() {
   await pool.query("SELECT 1");
