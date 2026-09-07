@@ -173,6 +173,37 @@ services:
       timeout: 5s
       retries: 10
 
+  notification-db:
+    image: postgres:16-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: shop
+      POSTGRES_PASSWORD: shop
+      POSTGRES_DB: notification_service
+    ports:
+      - "5437:5432"
+    volumes:
+      - notification-db-data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U shop -d notification_service"]
+      interval: 5s
+      timeout: 3s
+      retries: 5
+
+  notification-service:
+    build: ./notification-service
+    restart: unless-stopped
+    environment:
+      NODE_ENV: production
+      PORT: 3006
+      DATABASE_URL: postgres://shop:shop@notification-db:5432/notification_service
+      RABBITMQ_URL: amqp://shop:shop@rabbitmq:5672
+    depends_on:
+      notification-db:
+        condition: service_healthy
+      rabbitmq:
+        condition: service_healthy  
+
   api-gateway:
     build: ./api-gateway
     restart: unless-stopped
@@ -200,4 +231,5 @@ volumes:
   order-db-data:
   payment-db-data:
   cart-redis-data:
+  notification-db-data:
   rabbitmq-data:
