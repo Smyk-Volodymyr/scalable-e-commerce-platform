@@ -8,7 +8,7 @@ vi.mock("../src/clients/products.client.js", () => ({
 
 import { app } from "../src/app.js";
 import { getProduct } from "../src/clients/products.client.js";
-import { AppError } from "../src/utils/errors.js";
+import { AppError } from "@shop/shared/errors";
 import { authHeader, makeProduct } from "./helpers.js";
 
 const getProductMock = vi.mocked(getProduct);

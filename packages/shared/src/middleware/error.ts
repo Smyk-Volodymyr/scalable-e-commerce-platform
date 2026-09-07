@@ -1,5 +1,5 @@
 import type { ErrorRequestHandler, RequestHandler } from "express";
-import { AppError } from "../utils/errors.js";
+import { AppError } from "../errors.js";
 
 export const notFoundHandler: RequestHandler = (req, res) => {
   res.status(404).json({ error: `Роут ${req.method} ${req.path} не існує` });

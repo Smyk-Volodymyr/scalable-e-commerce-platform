@@ -1,6 +1,6 @@
 import express from "express";
 import { pool } from "./db/pool.js";
-import { errorHandler, notFoundHandler } from "./middleware/error.js";
+import { errorHandler, notFoundHandler } from "@shop/shared/http";
 import { ordersRouter } from "./modules/orders/orders.routes.js";
 import { ordersInternalRouter } from "./modules/orders/orders.internal.routes.js";
 

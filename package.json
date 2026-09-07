@@ -1,0 +1,19 @@
+{
+  "name": "scalable-e-commerce-platform",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Мікросервісна e-commerce платформа на TypeScript/Node",
+  "license": "ISC",
+  "workspaces": [
+    "packages/*",
+    "*-service",
+    "api-gateway"
+  ],
+  "scripts": {
+    "build:shared": "npm run build --workspace @shop/shared",
+    "postinstall": "npm run build:shared",
+    "build": "npm run build --workspaces --if-present",
+    "test": "npm run test --workspaces --if-present",
+    "typecheck": "npm run typecheck --workspaces --if-present"
+  }
+}

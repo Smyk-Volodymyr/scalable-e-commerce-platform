@@ -1,5 +1,5 @@
 import express from "express";
-import { errorHandler, notFoundHandler } from "./middleware/error.js";
+import { errorHandler, notFoundHandler } from "@shop/shared/http";
 import { cartRouter } from "./modules/cart/cart.routes.js";
 
 export const app = express();

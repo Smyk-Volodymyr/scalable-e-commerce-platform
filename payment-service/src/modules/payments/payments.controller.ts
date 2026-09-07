@@ -1,6 +1,6 @@
 import type { RequestHandler } from "express";
 import { z } from "zod";
-import { badRequest } from "../../utils/errors.js";
+import { badRequest } from "@shop/shared/errors";
 import { env } from "../../config/env.js";
 import { stripe } from "../../lib/stripe.js";
 import * as service from "./payments.service.js";

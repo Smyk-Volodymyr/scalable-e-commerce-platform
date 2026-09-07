@@ -1,4 +1,4 @@
-import { badRequest, conflict, notFound } from "../../utils/errors.js";
+import { badRequest, conflict, notFound } from "@shop/shared/errors";
 import { env } from "../../config/env.js";
 import { withTransaction } from "../../db/pool.js";
 import * as repo from "./reservations.repository.js";

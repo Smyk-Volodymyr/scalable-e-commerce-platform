@@ -1,5 +1,5 @@
 import type Stripe from "stripe";
-import { badRequest, conflict, notFound } from "../../utils/errors.js";
+import { badRequest, conflict, notFound } from "@shop/shared/errors";
 import { withTransaction } from "../../db/pool.js";
 import { stripe } from "../../lib/stripe.js";
 import * as ordersClient from "../../clients/orders.client.js";

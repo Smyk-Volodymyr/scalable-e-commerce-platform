@@ -88,7 +88,11 @@ services:
 
   # ---------- Сервіси ----------
   user-service:
-    build: ./user-service
+    build:
+      # Контекст — корінь монорепозиторію: образу потрібні і сам сервіс,
+      # і спільний пакет packages/shared, який лежить поза каталогом сервісу.
+      context: .
+      dockerfile: ./user-service/Dockerfile
     restart: unless-stopped
     healthcheck:
       # Стукаємо у власний /health вбудованим у Node fetch. Ставити curl чи wget
@@ -112,7 +116,11 @@ services:
         condition: service_healthy
 
   product-service:
-    build: ./product-service
+    build:
+      # Контекст — корінь монорепозиторію: образу потрібні і сам сервіс,
+      # і спільний пакет packages/shared, який лежить поза каталогом сервісу.
+      context: .
+      dockerfile: ./product-service/Dockerfile
     restart: unless-stopped
     healthcheck:
       # Стукаємо у власний /health вбудованим у Node fetch. Ставити curl чи wget
@@ -137,7 +145,11 @@ services:
         condition: service_healthy
 
   cart-service:
-    build: ./cart-service
+    build:
+      # Контекст — корінь монорепозиторію: образу потрібні і сам сервіс,
+      # і спільний пакет packages/shared, який лежить поза каталогом сервісу.
+      context: .
+      dockerfile: ./cart-service/Dockerfile
     restart: unless-stopped
     healthcheck:
       # Стукаємо у власний /health вбудованим у Node fetch. Ставити curl чи wget
@@ -160,7 +172,11 @@ services:
         condition: service_healthy
 
   order-service:
-    build: ./order-service
+    build:
+      # Контекст — корінь монорепозиторію: образу потрібні і сам сервіс,
+      # і спільний пакет packages/shared, який лежить поза каталогом сервісу.
+      context: .
+      dockerfile: ./order-service/Dockerfile
     restart: unless-stopped
     healthcheck:
       # Стукаємо у власний /health вбудованим у Node fetch. Ставити curl чи wget
@@ -185,7 +201,11 @@ services:
       rabbitmq:
         condition: service_healthy
   payment-service:
-    build: ./payment-service
+    build:
+      # Контекст — корінь монорепозиторію: образу потрібні і сам сервіс,
+      # і спільний пакет packages/shared, який лежить поза каталогом сервісу.
+      context: .
+      dockerfile: ./payment-service/Dockerfile
     restart: unless-stopped
     healthcheck:
       # Стукаємо у власний /health вбудованим у Node fetch. Ставити curl чи wget
@@ -243,7 +263,11 @@ services:
       retries: 5
 
   notification-service:
-    build: ./notification-service
+    build:
+      # Контекст — корінь монорепозиторію: образу потрібні і сам сервіс,
+      # і спільний пакет packages/shared, який лежить поза каталогом сервісу.
+      context: .
+      dockerfile: ./notification-service/Dockerfile
     restart: unless-stopped
     healthcheck:
       # Стукаємо у власний /health вбудованим у Node fetch. Ставити curl чи wget
@@ -266,7 +290,11 @@ services:
         condition: service_healthy  
 
   api-gateway:
-    build: ./api-gateway
+    build:
+      # Контекст — корінь монорепозиторію: образу потрібні і сам сервіс,
+      # і спільний пакет packages/shared, який лежить поза каталогом сервісу.
+      context: .
+      dockerfile: ./api-gateway/Dockerfile
     restart: unless-stopped
     healthcheck:
       # Стукаємо у власний /health вбудованим у Node fetch. Ставити curl чи wget

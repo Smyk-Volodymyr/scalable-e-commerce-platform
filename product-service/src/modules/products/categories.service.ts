@@ -1,4 +1,4 @@
-import { conflict, isPgError, notFound, badRequest } from "../../utils/errors.js";
+import { conflict, isPgError, notFound, badRequest } from "@shop/shared/errors";
 import * as repo from "./categories.repository.js";
 import type { CreateCategoryInput, UpdateCategoryInput } from "./categories.schemas.js";
 

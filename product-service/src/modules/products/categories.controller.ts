@@ -1,6 +1,6 @@
 import type { RequestHandler } from "express";
 import { z } from "zod";
-import { badRequest } from "../../utils/errors.js";
+import { badRequest } from "@shop/shared/errors";
 import { createCategorySchema, updateCategorySchema } from "./categories.schemas.js";
 import * as service from "./categories.service.js";
 

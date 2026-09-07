@@ -1,5 +1,5 @@
 import type { RequestHandler } from "express";
-import { badRequest } from "../../utils/errors.js";
+import { badRequest } from "@shop/shared/errors";
 import { loginSchema, refreshSchema, registerSchema, updateMeSchema } from "./users.schemas.js";
 import * as service from "./users.service.js";
 

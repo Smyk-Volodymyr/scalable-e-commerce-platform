@@ -1,5 +1,5 @@
 import crypto from "node:crypto";
-import { badRequest, conflict, notFound } from "../../utils/errors.js";
+import { badRequest, conflict, notFound } from "@shop/shared/errors";
 import { withTransaction } from "../../db/pool.js";
 import * as cartClient from "../../clients/cart.client.js";
 import * as productClient from "../../clients/products.client.js";

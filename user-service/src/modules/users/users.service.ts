@@ -1,6 +1,6 @@
 import bcrypt from "bcryptjs";
 import { env } from "../../config/env.js";
-import { conflict, isPgError, unauthorized } from "../../utils/errors.js";
+import { conflict, isPgError, unauthorized } from "@shop/shared/errors";
 import * as repo from "./users.repository.js";
 import type { LoginInput, RegisterInput, UpdateMeInput } from "./users.schemas.js";
 import jwt from "jsonwebtoken";
@@ -83,7 +83,7 @@ export async function login(input: LoginInput): Promise<AuthResult> {
   return issueTokens(row);
 }
 
-import { notFound } from "../../utils/errors.js";
+import { notFound } from "@shop/shared/errors";
 
 export async function getById(id: string): Promise<PublicUser> {
   const row = await repo.findById(id);

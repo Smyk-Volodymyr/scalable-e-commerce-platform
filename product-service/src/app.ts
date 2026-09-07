@@ -1,6 +1,6 @@
 import express from "express";
 import { pool } from "./db/pool.js";
-import { errorHandler, notFoundHandler } from "./middleware/error.js";
+import { errorHandler, notFoundHandler } from "@shop/shared/http";
 import { categoriesRouter } from "./modules/products/categories.routes.js";
 import { productsRouter } from "./modules/products/products.routes.js";
 import { reservationsRouter } from "./modules/reservations/reservations.routes.js";

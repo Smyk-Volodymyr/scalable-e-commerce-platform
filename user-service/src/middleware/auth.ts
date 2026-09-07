@@ -1,38 +1,7 @@
-import type { RequestHandler } from "express";
-import jwt from "jsonwebtoken";
+import { createAuth } from "@shop/shared/http";
 import { env } from "../config/env.js";
-import { unauthorized } from "../utils/errors.js";
-import type { JwtPayload } from "../modules/users/users.service.js";
 
-export const requireAuth: RequestHandler = (req, _res, next) => {
-  const header = req.headers.authorization;
-
-  if (!header?.startsWith("Bearer ")) {
-    throw unauthorized("Відсутній токен авторизації");
-  }
-
-  const token = header.slice("Bearer ".length);
-
-  try {
-    const payload = jwt.verify(token, env.JWT_SECRET, { issuer: "user-service" });
-
-    if (typeof payload === "string") {
-      throw unauthorized("Некоректний токен");
-    }
-
-    req.user = {
-      sub: payload.sub as string,
-      email: payload.email as string,
-      role: payload.role === "admin" ? "admin" : "customer",
-    };
-    next();
-  } catch (err) {
-    if (err instanceof jwt.TokenExpiredError) {
-      throw unauthorized("Термін дії токена вичерпано");
-    }
-    if (err instanceof jwt.JsonWebTokenError) {
-      throw unauthorized("Некоректний токен");
-    }
-    throw err;
-  }
-};
+// Обгортка, а не реекспорт: сама перевірка токена спільна, а секрет приходить
+// з локальної схеми оточення — вона свідомо лишається в сервісі.
+export const { requireAuth, requireAdmin } = createAuth(env.JWT_SECRET);
+export type { JwtPayload } from "@shop/shared/http";

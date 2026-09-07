@@ -1,6 +1,6 @@
 import express from "express";
 import { pool } from "./db/pool.js";
-import { errorHandler, notFoundHandler } from "./middleware/error.js";
+import { errorHandler, notFoundHandler } from "@shop/shared/http";
 import { webhook } from "./modules/payments/payments.controller.js";
 import { paymentsRouter } from "./modules/payments/payments.routes.js";
 

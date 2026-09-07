@@ -1,5 +1,5 @@
 import { env } from "../config/env.js";
-import { AppError } from "../utils/errors.js";
+import { AppError } from "@shop/shared/errors";
 
 export interface Order {
   id: string;

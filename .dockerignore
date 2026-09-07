@@ -1,0 +1,12 @@
+**/node_modules
+**/dist
+.git
+.github
+.env
+**/*.log
+**/tests
+**/vitest.config.ts
+# Дампи баз у контекст не потрапляють, а міграції потрапляють:
+# їх накочує CMD контейнера перед стартом застосунку.
+**/*.sql
+!**/migrations/*.sql

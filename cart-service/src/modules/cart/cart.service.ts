@@ -1,4 +1,4 @@
-import { badRequest, conflict, notFound } from "../../utils/errors.js";
+import { badRequest, conflict, notFound } from "@shop/shared/errors";
 import * as client from "../../clients/products.client.js";
 import * as repo from "./cart.repository.js";
 

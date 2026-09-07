@@ -1,4 +1,4 @@
-import { badRequest, conflict, isPgError, notFound } from "../../utils/errors.js";
+import { badRequest, conflict, isPgError, notFound } from "@shop/shared/errors";
 import * as repo from "./products.repository.js";
 import type { CreateProductInput, ListQuery, UpdateProductInput } from "./products.schemas.js";
 
