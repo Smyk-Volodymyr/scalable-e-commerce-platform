@@ -7,6 +7,7 @@ const envSchema = z.object({
   DATABASE_URL: z.string().min(1, "DATABASE_URL обовʼязковий"),
   JWT_SECRET: z.string().min(32, "JWT_SECRET має бути щонайменше 32 символи"),
   RESERVATION_TTL_MINUTES: z.coerce.number().int().positive().default(15),
+  RABBITMQ_URL: z.string().min(1, "RABBITMQ_URL обовʼязковий"),
 });
 
 const parsed = envSchema.safeParse(process.env);

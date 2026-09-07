@@ -107,8 +107,11 @@ services:
       DATABASE_URL: postgres://shop:shop@product-db:5432/product_service
       JWT_SECRET: ${JWT_SECRET}
       RESERVATION_TTL_MINUTES: 15
+      RABBITMQ_URL: amqp://shop:shop@rabbitmq:5672
     depends_on:
       product-db:
+        condition: service_healthy
+      rabbitmq:
         condition: service_healthy
 
   cart-service:
