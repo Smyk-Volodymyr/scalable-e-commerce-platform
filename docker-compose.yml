@@ -90,6 +90,15 @@ services:
   user-service:
     build: ./user-service
     restart: unless-stopped
+    healthcheck:
+      # Стукаємо у власний /health вбудованим у Node fetch. Ставити curl чи wget
+      # в образ заради одного GET-запиту — зайвий шар і зайва поверхня атаки.
+      test: ["CMD", "node", "-e", "fetch('http://127.0.0.1:3001/health').then(r => process.exit(r.ok ? 0 : 1)).catch(() => process.exit(1))"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      # Запас на накат міграцій і підключення до RabbitMQ при холодному старті.
+      start_period: 20s
     environment:
       NODE_ENV: production
       PORT: 3001
@@ -105,6 +114,15 @@ services:
   product-service:
     build: ./product-service
     restart: unless-stopped
+    healthcheck:
+      # Стукаємо у власний /health вбудованим у Node fetch. Ставити curl чи wget
+      # в образ заради одного GET-запиту — зайвий шар і зайва поверхня атаки.
+      test: ["CMD", "node", "-e", "fetch('http://127.0.0.1:3002/health').then(r => process.exit(r.ok ? 0 : 1)).catch(() => process.exit(1))"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      # Запас на накат міграцій і підключення до RabbitMQ при холодному старті.
+      start_period: 20s
     environment:
       NODE_ENV: production
       PORT: 3002
@@ -121,6 +139,15 @@ services:
   cart-service:
     build: ./cart-service
     restart: unless-stopped
+    healthcheck:
+      # Стукаємо у власний /health вбудованим у Node fetch. Ставити curl чи wget
+      # в образ заради одного GET-запиту — зайвий шар і зайва поверхня атаки.
+      test: ["CMD", "node", "-e", "fetch('http://127.0.0.1:3003/health').then(r => process.exit(r.ok ? 0 : 1)).catch(() => process.exit(1))"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      # Запас на накат міграцій і підключення до RabbitMQ при холодному старті.
+      start_period: 20s
     environment:
       NODE_ENV: production
       PORT: 3003
@@ -135,6 +162,15 @@ services:
   order-service:
     build: ./order-service
     restart: unless-stopped
+    healthcheck:
+      # Стукаємо у власний /health вбудованим у Node fetch. Ставити curl чи wget
+      # в образ заради одного GET-запиту — зайвий шар і зайва поверхня атаки.
+      test: ["CMD", "node", "-e", "fetch('http://127.0.0.1:3004/health').then(r => process.exit(r.ok ? 0 : 1)).catch(() => process.exit(1))"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      # Запас на накат міграцій і підключення до RabbitMQ при холодному старті.
+      start_period: 20s
     environment:
       NODE_ENV: production
       PORT: 3004
@@ -151,6 +187,15 @@ services:
   payment-service:
     build: ./payment-service
     restart: unless-stopped
+    healthcheck:
+      # Стукаємо у власний /health вбудованим у Node fetch. Ставити curl чи wget
+      # в образ заради одного GET-запиту — зайвий шар і зайва поверхня атаки.
+      test: ["CMD", "node", "-e", "fetch('http://127.0.0.1:3005/health').then(r => process.exit(r.ok ? 0 : 1)).catch(() => process.exit(1))"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      # Запас на накат міграцій і підключення до RabbitMQ при холодному старті.
+      start_period: 20s
     environment:
       NODE_ENV: production
       PORT: 3005
@@ -200,6 +245,15 @@ services:
   notification-service:
     build: ./notification-service
     restart: unless-stopped
+    healthcheck:
+      # Стукаємо у власний /health вбудованим у Node fetch. Ставити curl чи wget
+      # в образ заради одного GET-запиту — зайвий шар і зайва поверхня атаки.
+      test: ["CMD", "node", "-e", "fetch('http://127.0.0.1:3006/health').then(r => process.exit(r.ok ? 0 : 1)).catch(() => process.exit(1))"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      # Запас на накат міграцій і підключення до RabbitMQ при холодному старті.
+      start_period: 20s
     environment:
       NODE_ENV: production
       PORT: 3006
@@ -214,6 +268,15 @@ services:
   api-gateway:
     build: ./api-gateway
     restart: unless-stopped
+    healthcheck:
+      # Стукаємо у власний /health вбудованим у Node fetch. Ставити curl чи wget
+      # в образ заради одного GET-запиту — зайвий шар і зайва поверхня атаки.
+      test: ["CMD", "node", "-e", "fetch('http://127.0.0.1:3000/health').then(r => process.exit(r.ok ? 0 : 1)).catch(() => process.exit(1))"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      # Запас на накат міграцій і підключення до RabbitMQ при холодному старті.
+      start_period: 20s
     environment:
       NODE_ENV: production
       PORT: 3000
