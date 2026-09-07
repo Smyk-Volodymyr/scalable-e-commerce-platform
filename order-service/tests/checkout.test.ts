@@ -150,14 +150,11 @@ describe("POST /orders/checkout", () => {
     expect(await readOutbox(first.body.id, "order.created")).toHaveLength(1);
   });
 
-  // Ідемпотентність не має перетворюватись на канал витоку між користувачами:
-  // вгадавши чужий ключ, сторонній не повинен отримати чуже замовлення у відповіді.
-  // Наразі колізія ключів між користувачами закінчується помилкою, а не поверненням
-  // чужих даних — саме це тут і зафіксовано. Причина: idempotency_keys має
-  // PRIMARY KEY лише по key, тоді як репозиторій шукає рядок парою (key, user_id).
-  // Тобто чужий ключ ламає checkout другого користувача замість чистого 409.
-  // Це відоме обмеження схеми, а не поведінка, яку тест схвалює.
-  it("чужий Idempotency-Key не віддає чуже замовлення", async () => {
+  // Простір ключів ідемпотентності — на КОЖНОГО користувача, а не глобальний.
+  // Клієнти генерують ключі незалежно, тож збіг між двома користувачами — питання
+  // часу, а не зловмисності. Складений PRIMARY KEY (key, user_id) з міграції 004
+  // робить такий збіг нецікавим: обидва checkout проходять як звичайні.
+  it("той самий Idempotency-Key від іншого користувача створює окреме замовлення", async () => {
     const key = crypto.randomUUID();
     const other = makeUser();
 
@@ -172,13 +169,17 @@ describe("POST /orders/checkout", () => {
       .set("authorization", other.auth)
       .set("idempotency-key", key);
 
-    // Головне: у відповіді немає замовлення першого користувача.
-    expect(second.status).toBeGreaterThanOrEqual(400);
-    expect(second.body.id).toBeUndefined();
+    expect(second.status).toBe(201);
 
-    // І чуже замовлення не змінило власника й лишилось єдиним у базі.
-    const owners = await query<{ user_id: string }>("SELECT user_id FROM orders");
-    expect(owners).toHaveLength(1);
-    expect(owners[0]!.user_id).toBe(user.id);
+    // Чужий ключ не має віддавати чуже замовлення — це окреме замовлення,
+    // а не повторна видача першого.
+    expect(second.body.id).not.toBe(first.body.id);
+    expect(createReservation).toHaveBeenCalledTimes(2);
+
+    const owners = await query<{ id: string; user_id: string }>("SELECT id, user_id FROM orders");
+    expect(owners).toHaveLength(2);
+    expect(owners.map((r) => r.user_id).sort()).toEqual([user.id, other.id].sort());
+    // Перше замовлення лишилось за своїм власником.
+    expect(owners.find((r) => r.id === first.body.id)!.user_id).toBe(user.id);
   });
 });
