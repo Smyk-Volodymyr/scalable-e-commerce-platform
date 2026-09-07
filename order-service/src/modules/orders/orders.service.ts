@@ -116,7 +116,6 @@ export async function markPaid(orderId: string): Promise<void> {
   }
 
   await withTransaction(async (client) => {
-    // Умова в UPDATE — захист від гонки при паралельних вебхуках.
     const { rowCount } = await client.query(
       "UPDATE orders SET status='paid', updated_at=now() WHERE id=$1 AND status='pending'",
       [orderId],

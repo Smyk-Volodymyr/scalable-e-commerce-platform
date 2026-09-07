@@ -29,29 +29,21 @@ export async function consume(
 ): Promise<void> {
   const ch = getChannel();
 
-  // durable: черга переживе перезапуск брокера, і повідомлення
-  // накопичуватимуться, поки споживач лежить.
   await ch.assertQueue(queue, { durable: true });
 
   for (const pattern of patterns) {
     await ch.bindQueue(queue, EXCHANGE, pattern);
   }
 
-  // Брокер не віддасть більше 10 непідтверджених повідомлень одночасно.
-  // Без цього він вивалить усю чергу в памʼять одного споживача.
   await ch.prefetch(10);
 
   await ch.consume(queue, async (msg) => {
     if (!msg) return;
     try {
       await handler(msg);
-      // ack — підтвердження обробки. Поки його немає, повідомлення
-      // числиться за нами і повернеться в чергу, якщо процес впаде.
       ch.ack(msg);
     } catch (err) {
       console.error("Помилка обробки повідомлення:", err);
-      // requeue: false — інакше отруєне повідомлення крутитиметься
-      // по колу нескінченно. У проді сюди чіпляють dead letter queue.
       ch.nack(msg, false, false);
     }
   });
