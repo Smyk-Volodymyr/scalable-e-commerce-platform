@@ -1,5 +1,7 @@
 # Scalable E-Commerce Platform
 
+![CI](https://github.com/Smyk-Volodymyr/scalable-e-commerce-platform/actions/workflows/ci.yml/badge.svg)
+
 Мікросервісний бекенд інтернет-магазину: каталог, кошик, замовлення, оплата через
 Stripe і сповіщення. Сервіси не ходять один в одного по базах і спілкуються або
 HTTP-викликом, або подією через RabbitMQ. Мета проєкту — показати, як тримаються
